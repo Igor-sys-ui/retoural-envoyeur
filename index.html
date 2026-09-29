@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Retour à l'envoyeur</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --text:#1a1d21; --muted:#6b7280; --border:#d7dbe0;
+    --accent:#4f46e5; --accent-ink:#ffffff;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --bg:#111317; --card:#1a1d22; --text:#f2f3f5; --muted:#9aa1ab; --border:#3a3f47; }
+  }
+  :root[data-theme="dark"]{ --bg:#111317; --card:#1a1d22; --text:#f2f3f5; --muted:#9aa1ab; --border:#3a3f47; }
+  html{ scroll-padding-top:env(safe-area-inset-top,0px); height:100%; }
+  *{ box-sizing:border-box; }
+  body{ height:100%; margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  main{ max-width:480px; margin:0 auto; padding:24px 16px 40px; }
+  .progress{ color:var(--muted); font-size:.78rem; text-align:center; margin-bottom:6px; }
+  h1{ font-size:1.15rem; margin:4px 0 18px; text-align:center; }
+  section.card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .opt{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+    border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; cursor:pointer; }
+  .opt.on{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, var(--card)); }
+  .opt-text{ font-size:.95rem; }
+  .badge{ width:24px; height:24px; border-radius:50%; border:1.5px solid var(--border); flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; color:var(--muted); }
+  .opt.on .badge{ border-color:var(--accent); background:var(--accent); color:#fff; }
+  textarea{ width:100%; margin-top:14px; min-height:60px; padding:10px 12px; border-radius:10px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font:inherit; resize:vertical; }
+  button#next{ width:100%; margin-top:14px; background:var(--accent); color:var(--accent-ink); font-weight:600;
+    border:none; border-radius:10px; padding:13px 16px; font-size:1rem; cursor:pointer; }
+  button#next:disabled{ opacity:.5; }
+  #hint{ text-align:center; color:#ef4444; font-size:.85rem; height:1.2em; margin-top:8px; }
+  .thanks{ text-align:center; padding:30px 10px; }
+  .thanks .big{ font-size:2rem; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<main>
+  <!-- ====== PERSONNALISATION : modifie librement les titres et les 7 réponses de chaque page ====== -->
+  <script id="config">
+    window.PAGES = [
+      { question: "Question 1", options: ["Réponse 1","Réponse 2","Réponse 3","Réponse 4","Réponse 5","Réponse 6","Réponse 7"] },
+      { question: "Question 2", options: ["Réponse 1","Réponse 2","Réponse 3","Réponse 4","Réponse 5","Réponse 6","Réponse 7"] },
+      { question: "Question 3", options: ["Réponse 1","Réponse 2","Réponse 3","Réponse 4","Réponse 5","Réponse 6","Réponse 7"] },
+      { question: "Question 4", options: ["Réponse 1","Réponse 2","Réponse 3","Réponse 4","Réponse 5","Réponse 6","Réponse 7"] },
+      { question: "Question 5", options: ["Réponse 1","Réponse 2","Réponse 3","Réponse 4","Réponse 5","Réponse 6","Réponse 7"] }
+    ];
+  </script>
+  <!-- ============================================================================================ -->
+
+  <div class="progress" id="progress"></div>
+  <h1 id="qTitle"></h1>
+
+  <section class="card" id="formCard">
+    <div id="options"></div>
+    <textarea id="comment" placeholder="Commentaire personnel (optionnel)"></textarea>
+    <button id="next"></button>
+    <div id="hint"></div>
+  </section>
+
+  <section class="card thanks" id="thanksCard" style="display:none">
+    <div class="big">✓</div>
+    <div>Merci, c'est envoyé.</div>
+  </section>
+</main>
+
+<script>
+const FORM_ENDPOINT = "https://formsubmit.co/ajax/da98e0ecab7e74a817686bf8d9187048";
+const PAGES = window.PAGES;
+let page = 0;
+const answers = PAGES.map(() => ({ selections: [], comment: '' }));
+
+const progressEl = document.getElementById('progress');
+const titleEl = document.getElementById('qTitle');
+const optionsEl = document.getElementById('options');
+const commentEl = document.getElementById('comment');
+const nextBtn = document.getElementById('next');
+const hintEl = document.getElementById('hint');
+
+function render(){
+  const p = PAGES[page];
+  progressEl.textContent = `Question ${page+1} / ${PAGES.length}`;
+  titleEl.textContent = p.question;
+  commentEl.value = answers[page].comment;
+  nextBtn.textContent = page === PAGES.length - 1 ? 'Envoyer' : 'Suivant';
+  hintEl.textContent = '';
+
+  optionsEl.innerHTML = '';
+  p.options.forEach((opt, i) => {
+    const rank = answers[page].selections.indexOf(i);
+    const row = document.createElement('div');
+    row.className = 'opt' + (rank > -1 ? ' on' : '');
+    row.innerHTML = `<span class="opt-text">${opt}</span><span class="badge">${rank > -1 ? rank+1 : ''}</span>`;
+    row.addEventListener('click', () => {
+      const sels = answers[page].selections;
+      const idx = sels.indexOf(i);
+      if (idx > -1) sels.splice(idx, 1); else sels.push(i);
+      render();
+    });
+    optionsEl.appendChild(row);
+  });
+}
+render();
+
+commentEl.addEventListener('input', () => { answers[page].comment = commentEl.value; });
+
+nextBtn.addEventListener('click', async () => {
+  if (answers[page].selections.length === 0){
+    hintEl.textContent = 'Choisis au moins une réponse';
+    return;
+  }
+  if (page < PAGES.length - 1){
+    page++;
+    render();
+    return;
+  }
+  nextBtn.disabled = true;
+  hintEl.textContent = '';
+  let body = "Retour à l'envoyeur\n\n";
+  PAGES.forEach((p, pi) => {
+    const chosen = answers[pi].selections.map((optIdx, rank) => `${rank+1}. ${p.options[optIdx]}`).join('\n');
+    body += `${p.question}\n${chosen}\n`;
+    if (answers[pi].comment.trim()) body += `Commentaire : ${answers[pi].comment.trim()}\n`;
+    body += '\n';
+  });
+  try{
+    const params = new URLSearchParams();
+    params.append('message', body);
+    params.append('_subject', "Retour à l'envoyeur — nouvelle réponse");
+    const res = await fetch(FORM_ENDPOINT, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/json' },
+      body: params.toString()
+    });
+    if (!res.ok) throw new Error('send failed');
+    document.getElementById('formCard').style.display = 'none';
+    document.getElementById('thanksCard').style.display = 'block';
+    document.getElementById('progress').style.display = 'none';
+  }catch(e){
+    hintEl.textContent = "Erreur d'envoi, réessaie.";
+    nextBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
