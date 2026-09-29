@@ -128,8 +128,7 @@ nextBtn.addEventListener('click', async () => {
     if (answers[pi].comment.trim()) body += `Commentaire : ${answers[pi].comment.trim()}\n`;
     body += '\n';
   });
-try {
-
+try{
   const res = await fetch(FORM_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -142,11 +141,7 @@ try {
     })
   });
 
-  const data = await res.json();
-
-  if (!res.ok || data.success === false) {
-    throw new Error('send failed');
-  }
+  if (!res.ok) throw new Error('send failed');
 
   document.getElementById('formCard').style.display = 'none';
   document.getElementById('thanksCard').style.display = 'block';
