@@ -42,14 +42,14 @@
 </head>
 <body>
 <main>
-  <!-- ====== PERSONNALISATION : modifie librement les titres et les 7 réponses de chaque page ====== -->
+  <!-- ====== PERSONNALISATION : modifie librement les titres et les réponses de chaque page ====== -->
   <script id="config">
     window.PAGES = [
       { question: "Quand tu imagines qu'on recommence à se parler régulièrement - pas juste deux messages diplomatiques tous les quatre jours — quelle réaction ressemble le plus à la tienne ?", options: ["Ça me ferait surtout du bien qu'on garde encore de la distance.","Ça me ferait plaisir, mais j'aurais besoin que ce soit léger et progressif.","J'en ai envie, mais il y a encore des choses importantes à éclaircir.","Oui. J'ai vraiment envie qu'on retrouve une place régulière dans la vie de l'autre.","Je ne sais pas encore — et c'est justement pour ça que j'ai besoin qu'on parle."] },
       { question: "Avec le recul, le temps et la distance, qu'est-ce qui s'est surtout clarifié pour toi ?", options: ["Ce qui me faisait du mal dans notre relation.","Ce que j'aurais aimé qu'on fasse différemment.","Les choses chez toi auxquelles je tiens vraiment.","Les choses chez moi que je dois aussi remettre en question.","Certains de nos problèmes me paraissent aujourd'hui réparables.","Certaines incompatibilités me semblent au contraire plus importantes qu'avant.","Je suis encore en plein brouillard."] },
-      { question: "Quand tu repenses à moi avec affection — si ça t'arrive encore, madame — qu'est-ce qui fait que je peux te manquer ?", options: ["Notre complicité / nos private jokes.","Les conversations qu'on peut avoir pendant des heures.","La façon dont on se comprend.","Notre attirance / notre tendresse.","Les projets et la vie que j'arrivais a imaginer avec toi.","Le fait qu'on se pousse mutuellement à évoluer.","Le sentiment d'être chez moi avec toi.","Ton énergie / ta personnalité.","Des souvenirs précis qui me reviennent." ] },
-      { question: "Si on envisageait réellement un jour de construire à nouveau quelque chose - jusqu'au scénario très légèrement ambitieux de te passer une bague au doigt - qu'est-ce que tu aurais surtout besoin de voir chez moi pour te sentir rassuré ?", options: ["Plus de stabilité / constance.","Une meilleure communication dans les moments difficiles.","Que certaines blessures ou certains comportements ne se répètent pas.","Plus de confiance.","Que nos projets de vie soient réellement compatibles.","Que je sache davantage respecter tes besoins / ton espace.","Voir comment notre relation fonctionnerait concrètement, pas seulement émotionnellement."]}
-       ];
+      { question: "Quand tu repenses à moi avec affection — si ça t'arrive encore, madame — qu'est-ce qui fait que je peux te manquer ?", options: ["Notre complicité / nos private jokes.","Les conversations qu'on peut avoir pendant des heures.","La façon dont on se comprend.","Notre attirance / notre tendresse.","Les projets et la vie que j'arrivais a imaginer avec toi.","Le fait qu'on se pousse mutuellement à évoluer.","Le sentiment d'être chez moi avec toi.","Ton énergie / ta personnalité.","Des souvenirs précis qui me reviennent."] },
+      { question: "Si on envisageait réellement un jour de construire à nouveau quelque chose - jusqu'au scénario très légèrement ambitieux de te passer une bague au doigt - qu'est-ce que tu aurais surtout besoin de voir chez moi pour te sentir rassuré ?", options: ["Plus de stabilité / constance.","Une meilleure communication dans les moments difficiles.","Que certaines blessures ou certains comportements ne se répètent pas.","Plus de confiance.","Que nos projets de vie soient réellement compatibles.","Que je sache davantage respecter tes besoins / ton espace.","Voir comment notre relation fonctionnerait concrètement, pas seulement émotionnellement."] }
+    ];
   </script>
   <!-- ============================================================================================ -->
 
@@ -70,8 +70,8 @@
 </main>
 
 <script>
-const FORM_ENDPOINT = "https://formsubmit.co/ajax/igor.delarueducan@yahoo.fr";
-
+// ÉTAPE 1 (temporaire) : adresse en clair pour déclencher l'activation de ce site.
+const FORM_ENDPOINT = "https://formsubmit.co/igor.delarueducan@yahoo.fr";
 const PAGES = window.PAGES;
 let page = 0;
 const answers = PAGES.map(() => ({ selections: [], comment: '' }));
@@ -110,7 +110,7 @@ render();
 
 commentEl.addEventListener('input', () => { answers[page].comment = commentEl.value; });
 
-nextBtn.addEventListener('click', async () => {
+nextBtn.addEventListener('click', () => {
   if (answers[page].selections.length === 0){
     hintEl.textContent = 'Choisis au moins une réponse';
     return;
@@ -120,8 +120,6 @@ nextBtn.addEventListener('click', async () => {
     render();
     return;
   }
-  nextBtn.disabled = true;
-  hintEl.textContent = '';
   let body = "Retour à l'envoyeur\n\n";
   PAGES.forEach((p, pi) => {
     const chosen = answers[pi].selections.map((optIdx, rank) => `${rank+1}. ${p.options[optIdx]}`).join('\n');
@@ -129,25 +127,17 @@ nextBtn.addEventListener('click', async () => {
     if (answers[pi].comment.trim()) body += `Commentaire : ${answers[pi].comment.trim()}\n`;
     body += '\n';
   });
-  try{
-    const params = new URLSearchParams();
-    params.append('message', body);
-    params.append('_subject', "Retour à l'envoyeur — nouvelle réponse");
-    const res = await fetch(FORM_ENDPOINT, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/json' },
-      body: params.toString()
-    });
-    if (!res.ok) throw new Error('send failed');
-    document.getElementById('formCard').style.display = 'none';
-    document.getElementById('thanksCard').style.display = 'block';
-    document.getElementById('progress').style.display = 'none';
-  }catch(e){
-    hintEl.textContent = "Erreur d'envoi, réessaie.";
-    nextBtn.disabled = false;
-  }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = FORM_ENDPOINT;
+  const msgInput = document.createElement('input');
+  msgInput.type = 'hidden'; msgInput.name = 'message'; msgInput.value = body;
+  const subjInput = document.createElement('input');
+  subjInput.type = 'hidden'; subjInput.name = '_subject'; subjInput.value = "Retour à l'envoyeur — nouvelle réponse";
+  form.appendChild(msgInput); form.appendChild(subjInput);
+  document.body.appendChild(form);
+  form.submit();
 });
 </script>
-
 </body>
 </html>
