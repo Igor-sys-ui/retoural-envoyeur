@@ -128,23 +128,36 @@ nextBtn.addEventListener('click', async () => {
     if (answers[pi].comment.trim()) body += `Commentaire : ${answers[pi].comment.trim()}\n`;
     body += '\n';
   });
-  try{
-    const params = new URLSearchParams();
-    params.append('message', body);
-    params.append('_subject', "Retour à l'envoyeur — nouvelle réponse");
-    const res = await fetch(FORM_ENDPOINT, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/x-www-form-urlencoded', 'Accept':'application/json' },
-      body: params.toString()
-    });
-    if (!res.ok) throw new Error('send failed');
-    document.getElementById('formCard').style.display = 'none';
-    document.getElementById('thanksCard').style.display = 'block';
-    document.getElementById('progress').style.display = 'none';
-  }catch(e){
-    hintEl.textContent = "Erreur d'envoi, réessaie.";
-    nextBtn.disabled = false;
+try {
+
+  const res = await fetch(FORM_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify({
+      message: body,
+      _subject: "Retour à l'envoyeur — nouvelle réponse"
+    })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || data.success === false) {
+    throw new Error('send failed');
   }
+
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('thanksCard').style.display = 'block';
+  document.getElementById('progress').style.display = 'none';
+
+} catch(e) {
+
+  hintEl.textContent = "Erreur d'envoi, réessaie.";
+  nextBtn.disabled = false;
+
+}
 });
 </script>
 </body>
